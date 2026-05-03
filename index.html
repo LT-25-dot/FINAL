@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港公共交通到站時間查詢</title>
+    <style>
+        /* 整體佈局 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        /* 按鈕容器 */
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        /* 共用按鈕樣式 */
+        .btn {
+            display: block;
+            width: 280px;
+            padding: 30px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* 各公司專屬顏色（參考官方主色） */
+        /* MTR（港鐵重鐵） - 經典紅 #C8102E */
+        .btn-mtr {
+            background: linear-gradient(135deg, #C8102E, #a10d24);
+        }
+
+        /* Light Rail（輕鐵） - 官方藍 #009CDE */
+        .btn-lr {
+            background: linear-gradient(135deg, #009CDE, #007bb8);
+        }
+
+        /* Bus（巴士，以九巴為主參考紅色，但為避免與MTR重複，改用城巴/新巴常見的深藍綠 #003C71，兼顧多間巴士公司） */
+        .btn-bus {
+            background: linear-gradient(135deg, #003C71, #002b55);
+        }
+
+        /* 小標題 */
+        .btn span {
+            display: block;
+            font-size: 1rem;
+            margin-top: 8px;
+            opacity: 0.9;
+        }
+
+        /* 手機適配 */
+        @media (max-width: 768px) {
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            .btn {
+                width: 80%;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>香港公共交通到站查詢</h1>
+        <p>選擇以下交通工具，查詢實時到站時間</p>
+    </header>
+
+    <div class="buttons">
+        <a href="MTR.html" class="btn btn-mtr">
+            港鐵 (MTR)
+            <span>重鐵到站時間查詢</span>
+        </a>
+
+        <a href="LR.html" class="btn btn-lr">
+            輕鐵 (Light Rail)
+            <span>輕鐵到站時間查詢</span>
+        </a>
+
+        <a href="Bus.html" class="btn btn-bus">
+            巴士 (Bus)
+            <span>巴士到站時間查詢</span>
+        </a>
+    </div>
+</body>
+</html>

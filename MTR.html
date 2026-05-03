@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  
+  <!-- ==================== PWA 設定（已加入你選定的橙色列車 icon） ==================== -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f57c00">           <!-- 匹配你選的橙色 icon -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MTR 即時">
+  
+  <!-- iPhone / iPad 快捷方式圖標 -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  
+  <!-- Android 及其他瀏覽器快捷方式圖標 -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+  <title>MTR 到站時間查詢及路線規劃</title>
+  <style>
+    :root {
+      --theme-color: #c8102e;
+      --theme-bg-light: #fdf2f4;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f4f6f8;
+      color: #333;
+      scroll-snap-type: y proximity;
+      overflow-y: scroll;
+    }
+    .section {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+    #section1, #section2, #section3 {
+      padding: 20px;
+    }
+
+    /* ==================== 新增：三劃 Hamburger 按鈕 + 抽屜式選單 ==================== */
+    .hamburger {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      background: none;
+      border: none;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 8px;
+      transition: all 0.3s ease;
+    }
+    .hamburger:hover {
+      transform: scale(1.08);
+    }
+    .hamburger span {
+      display: block;
+      width: 28px;
+      height: 3px;
+      background: var(--theme-color);
+      border-radius: 3px;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hamburger span:nth-child(1) { transform: translateY(-8px); }
+    .hamburger span:nth-child(2) { }
+    .hamburger span:nth-child(3) { transform: translateY(8px); }
+
+    .hamburger.open span:nth-child(1) {
+      transform: translateY(0) rotate(45deg);
+    }
+    .hamburger.open span:nth-child(2) {
+      opacity: 0;
+      transform: translateY(0);
+    }
+    .hamburger.open span:nth-child(3) {
+      transform: translateY(0) rotate(-45deg);
+    }
+
+    /* 抽屜式選單 */
+    .side-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: #ffffff;
+      box-shadow: 4px 0 25px rgba(0,0,0,0.25);
+      transform: translateX(-100%);
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 2000;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .side-drawer.open {
+      transform: translateX(0);
+    }
+    .drawer-header {
+      padding: 0 20px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 15px;
+    }
+    .drawer-header h3 {
+      margin: 0;
+      color: var(--theme-color);
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .drawer-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 4px 10px;
+      line-height: 1;
+    }
+    .drawer-menu {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .drawer-menu li {
+      padding: 14px 25px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .drawer-menu li:hover {
+      background: #f8fafc;
+    }
+    .drawer-menu li:active {
+      background: #f1f5f9;
+    }
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 1999;
+    }
+    .drawer-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 原有 back-btn 樣式（僅 section1 使用） */
+    .back-btn, .back-to-map {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 7px 14px;
+      background: var(--theme-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .back-btn:hover, .back-to-map:hover {
+      filter: brightness(85%);
+      transform: translateY(-1px);
+    }
+
+    h1 {
+      color: var(--theme-color);
+      text-align: center;
+      margin: 52px 0 0.4em;
+      font-size: 1.75rem;
+      font-weight: 800;
+      transition: color 0.4s ease;
+    }
+    h2.plan-subtitle {
+      text-align: center;
+      margin: 0.9em 0 0.4em;
+      font-size: 1.15rem;
+      color: var(--theme-color);
+      transition: color 0.4s ease;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin: 0.8em 0;
+    }
+    select, button {
+      padding: 10px 12px;
+      font-size: 0.98rem;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      min-height: 46px;
+    }
+    select:focus {
+      border-color: var(--theme-color);
+      box-shadow: 0 0 0 3px var(--theme-bg-light);
+    }
+    button {
+      background: var(--theme-color);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button:hover:not(:disabled) {
+      filter: brightness(85%);
+      transform: translateY(-1px);
+    }
+    button:disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .plan-btn {
+      background: #10b981;
+    }
+    .status {
+      text-align: center;
+      margin: 0.8em 0;
+      color: #6b7280;
+      min-height: 1.1em;
+      font-size: 0.93rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .route-title {
+      font-size: 1.35rem;
+      margin: 0.8em 0 0.6em;
+      color: var(--theme-color);
+      text-align: center;
+      font-weight: 700;
+      transition: color 0.4s ease;
+    }
+    .bus-stop {
+      background: white;
+      border-radius: 12px;
+      margin: 0.9em 0;
+      padding: 1em;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #f3f4f6;
+      transition: transform 0.2s ease;
+    }
+    .bus-stop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+    .stop-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 0 0 0.6em;
+      color: #1f2937;
+      border-bottom: 2px solid var(--theme-bg-light);
+      padding-bottom: 7px;
+      transition: border-color 0.4s ease;
+    }
+    .bus-item {
+      display: grid;
+      grid-template-columns: 2.8fr 1.2fr;
+      gap: 9px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f3f4f6;
+      align-items: center;
+    }
+    .bus-item:last-child { border-bottom: none; }
+    .bus-time {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--theme-color);
+      transition: color 0.4s ease;
+    }
+    .plat {
+      background: var(--theme-color);
+      color: white;
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.83rem;
+      text-align: center;
+      transition: background-color 0.4s ease;
+    }
+    .immediate {
+      color: var(--theme-color);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    .footer-remark {
+      margin-top: 1.6em;
+      padding: 0.9em;
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      border-radius: 4px 8px 8px 4px;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: #92400e;
+    }
+    .error-msg {
+      color: #dc2626;
+      text-align: center;
+      margin: 1.6em 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      background: #fef2f2;
+      padding: 13px;
+      border-radius: 8px;
+    }
+    .no-service {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 1.05rem;
+      padding: 3em 0;
+    }
+    .transfer-note {
+      text-align: center;
+      font-weight: 700;
+      color: var(--theme-color);
+      margin: 1.2em 0;
+      font-size: 1.05rem;
+      position: relative;
+    }
+    .transfer-note::before, .transfer-note::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: calc(50% - 55px);
+      height: 1px;
+      background: #e5e7eb;
+    }
+    .transfer-note::before { left: 0; }
+    .transfer-note::after { right: 0; }
+   
+    .segment-stations {
+      padding: 0.9em;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-size: 0.93rem;
+      line-height: 1.55;
+      color: #4b5563;
+      margin-top: 8px;
+    }
+    #map-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin: 0.8em 0;
+    }
+    #map {
+      flex: 1;
+      min-height: 420px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+      z-index: 1;
+    }
+    .map-note {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #6b7280;
+      margin-top: 0.6em;
+      padding-bottom: 0.8em;
+    }
+    .spinner {
+      display: inline-block;
+      width: 26px;
+      height: 26px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--theme-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden-trains {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out;
+    }
+    .more-btn-container {
+      text-align: center;
+      padding: 9px 0 3px;
+      border-top: 1px dashed #e5e7eb;
+      margin-top: 6px;
+    }
+    .more-btn {
+      background: white;
+      border: 1px solid var(--theme-color);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--theme-color);
+      cursor: pointer;
+      box-shadow: none;
+      transition: all 0.3s ease;
+    }
+    .more-btn:hover {
+      background: var(--theme-bg-light);
+      transform: none;
+    }
+    
+    .fare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      align-items: center;
+      margin-top: 12px;
+      background: white;
+      padding: 13px;
+      border-radius: 8px;
+      border: 1px solid #bae6fd;
+    }
+    .fare-toggle-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 16px 0;
+    }
+    .fare-toggle-container {
+      display: flex;
+      background: #f1f5f9;
+      padding: 5px;
+      border-radius: 50px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      gap: 4px;
+    }
+    .fare-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 20px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      background: transparent;
+      outline: none;
+    }
+    .fare-tab img {
+      height: 22px;
+      width: auto;
+      filter: grayscale(100%);
+      opacity: 0.6;
+      transition: all 0.3s;
+    }
+    .fare-tab span {
+      font-weight: 700;
+      font-size: 0.97rem;
+      color: #64748b;
+      transition: all 0.3s;
+    }
+    .fare-tab.active.oct {
+      background: #f59e0b;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    .fare-tab.active.oct span { color: white; }
+    .fare-tab.active.oct img { filter: none; opacity: 1; }
+    .fare-tab.active.tkt {
+      background: #a6125d;
+      box-shadow: 0 4px 12px rgba(166, 18, 93, 0.3);
+    }
+    .fare-tab.active.tkt span { color: white; }
+    .fare-tab.active.tkt img { filter: none; opacity: 1; }
+    .fare-grid {
+      border: none;
+      background: #ffffff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    .fare-header {
+      font-size: 0.88rem;
+      color: #6b7280;
+      font-weight: 600;
+      padding-bottom: 7px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .fare-row-title {
+      font-weight: 700;
+      color: #1f2937;
+      text-align: left;
+    }
+    .fare-price {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+    .price-oct { color: #059669; }
+    .price-tkt { color: #0369a1; }
+
+    /* GPS 相關樣式 */
+    .custom-user-marker {
+      animation: pulse-ring 2.5s infinite ease-in-out;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+      70% { box-shadow: 0 0 0 16px rgba(59, 130, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+
+    .gps-icon-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1001;
+      width: 48px;
+      height: 48px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .gps-icon-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    }
+    .gps-icon-btn:active {
+      transform: scale(0.95);
+    }
+
+    .nearest-banner {
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 1.02rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    }
+    .nearest-banner strong {
+      color: #052e16;
+    }
+
+    .route-speed-belt {
+      animation: speed-belt-glow 2s ease-in-out infinite;
+    }
+
+    .plan-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 12px 8px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .plan-header h1 {
+      margin: 0;
+      flex: 1;
+      text-align: center;
+      font-size: 1.55rem;
+      padding-left: 48px;
+    }
+    .plan-route {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin: 12px 0 20px;
+    }
+    .plan-side {
+      flex: 1;
+      min-width: 0;
+    }
+    .plan-side h2.plan-subtitle {
+      margin: 0 0 8px 0;
+      font-size: 1.08rem;
+      text-align: left;
+    }
+    .plan-arrow {
+      font-size: 2.4rem;
+      color: #10b981;
+      margin-top: 42px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .plan-btn-container {
+      text-align: center;
+      margin: 8px 0 20px;
+    }
+
+    /* ==================== 新增：路線規劃頁面垂直排列（只影響 section3） ==================== */
+    .plan-route .plan-side .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+      margin: 0.8em 0;
+    }
+    .plan-route .plan-side select {
+      width: 100%;
+      min-height: 48px;
+    }
+
+    @media (max-width: 560px) {
+      #section1, #section2, #section3 { padding: 10px; }
+      h1 { font-size: 1.45rem; margin-top: 48px; }
+      .controls { gap: 6px; margin: 0.7em 0; }
+      select, button { padding: 9px 10px; font-size: 0.95rem; width: 48%; flex-grow: 1; min-height: 46px; }
+      button { width: auto; }
+      .bus-stop { margin: 0.75em 0; padding: 0.95em; }
+      .bus-item { gap: 8px; padding: 8px 0; }
+      .bus-time { font-size: 1.2rem; }
+      .plat { font-size: 0.8rem; padding: 4px 9px; }
+      .stop-name { font-size: 1.1rem; margin-bottom: 0.55em; }
+      #map { min-height: 360px; }
+      .fare-grid { padding: 11px; }
+      .fare-price { font-size: 1.22rem; }
+      .nearest-banner { font-size: 0.98rem; padding: 11px 14px; margin: 10px 0; }
+      .gps-icon-btn { width: 46px; height: 46px; font-size: 24px; top: 10px; right: 10px; }
+      .status { font-size: 0.9rem; }
+      .route-title { font-size: 1.28rem; }
+      .map-note { font-size: 0.8rem; }
+      .fare-tab { padding: 8px 18px; }
+      .fare-tab span { font-size: 0.94rem; }
+      .plan-header h1 { font-size: 1.4rem; }
+      .plan-route { gap: 10px; }
+      .plan-arrow { font-size: 2rem; margin-top: 36px; }
+      .hamburger { top: 10px; left: 10px; width: 46px; height: 46px; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <!-- ====================== section1 ====================== -->
+  <div id="section1" class="section">
+    <!-- 替換原本的返回按鈕為 Hamburger（與 section2 / section3 完全一致） -->
+    <button id="hamburger-section1" class="hamburger" onclick="toggleDrawer()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    
+    <!-- 右上角純位置圖標 -->
+    <button id="gps-btn" class="gps-icon-btn" title="偵測我的位置" onclick="requestUserLocation()">
+      📍
+    </button>
+
+    <h1>MTR 到站時間查詢</h1>
+
+    <div class="controls">
+      <select id="line">
+        <option value="">請選擇路線…</option>
+      </select>
+      <select id="sta" disabled>
+        <option value="">請先選擇路線</option>
+      </select>
+      <button id="btnQuery" disabled>查詢到站時間</button>
+      <button id="btnRefresh" disabled>🔄 重新整理</button>
+      <button class="plan-btn" id="btnToPlan" onclick="document.getElementById('section3').scrollIntoView({behavior:'smooth'});">🗺️ 路線規劃 →</button>
+    </div>
+
+    <div id="nearest-banner" class="nearest-banner" style="display: none;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.4rem;">📍</span>
+        <div>
+          <strong id="nearest-name"></strong>
+          <span id="nearest-distance" style="margin-left:6px;color:#10b981;font-weight:600;"></span>
+          <div style="font-size:0.82rem;color:#052e16;margin-top:1px;" id="nearest-code"></div>
+        </div>
+      </div>
+      <button onclick="queryNearestStation()" 
+              style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:9999px;font-weight:700;font-size:0.93rem;white-space:nowrap;">
+        立即查詢此站
+      </button>
+    </div>
+
+    <div class="status" id="status">請選擇路線及車站以查詢即時班次</div>
+    <div id="map-container">
+      <div id="map"></div>
+      <p class="map-note">💡 點擊地圖標記可直接查詢 • 右上角圖標可偵測最近車站</p>
+    </div>
+  </div>
+  
+  <!-- ====================== section2 ====================== -->
+  <div id="section2" class="section">
+    <!-- 替換成 Hamburger 三劃按鈕 -->
+    <button id="hamburger-section2" class="hamburger" onclick="toggleDrawer()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    
+    <div id="result">
+      <div class="no-service" style="padding-top: 100px;">
+        尚未選擇任何車站<br>
+        <small>請在上方選擇或直接點擊地圖</small>
+      </div>
+    </div>
+    <div class="footer-remark" id="footerRemark" style="display:none"></div>
+  </div>
+  
+  <!-- ====================== section3 ====================== -->
+  <div id="section3" class="section">
+    <div class="plan-header">
+      <!-- 替換成 Hamburger 三劃按鈕 -->
+      <button id="hamburger-section3" class="hamburger" onclick="toggleDrawer()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>路線規劃指南</h1>
+    </div>
+
+    <div class="plan-route">
+      <div class="plan-side">
+        <h2 class="plan-subtitle">出發地</h2>
+        <div class="controls">
+          <select id="fromLine">
+            <option value="">選擇出發路線…</option>
+          </select>
+          <select id="fromSta" disabled>
+            <option value="">請先選擇路線</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="plan-arrow">→</div>
+
+      <div class="plan-side">
+        <h2 class="plan-subtitle">目的地</h2>
+        <div class="controls">
+          <select id="toLine">
+            <option value="">選擇終點路線…</option>
+          </select>
+          <select id="toSta" disabled>
+            <option value="">請先選擇路線</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-btn-container">
+      <div class="controls" style="margin-top:0;">
+        <button id="btnPlan" disabled style="width:100%;max-width:320px;">🔍 規劃最佳路線</button>
+      </div>
+    </div>
+
+    <div class="status" id="planStatus">請完整選擇出發及終點路線與車站</div>
+    <div id="planResult">
+      <div class="no-service" style="padding-top: 50px;">
+        等待規劃中...<br>
+        <small>系統將為您計算最少站數的實際轉乘路線</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== 抽屜式選單（全域） ====================== -->
+  <div id="side-drawer" class="side-drawer">
+    <div class="drawer-header">
+      <h3>MTR 即時查詢</h3>
+      <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+    </div>
+    <ul class="drawer-menu">
+      <li onclick="goToSection(1); toggleDrawer();">
+        <span style="font-size:1.4rem;">🏠</span>
+        <span>返回首頁</span>
+      </li>
+      <li onclick="goToSection(3); toggleDrawer();">
+        <span style="font-size:1.4rem;">🗺️</span>
+        <span>路線規劃</span>
+      </li>
+      <li onclick="window.location.href='index.html'; toggleDrawer();">
+        <span style="font-size:1.4rem;">🔙</span>
+        <span>返回主頁</span>
+      </li>
+    </ul>
+  </div>
+  <div id="drawer-overlay" class="drawer-overlay" onclick="toggleDrawer()"></div>
+
+<script>
+// ====================== 所有核心程式碼（已用第二份完整資料補全第一份） ======================
+let FARE_LOOKUP = {};
+let isFareLoaded = false;
+
+function normalizeStationName(str) {
+  if (!str) return '';
+  return String(str).toLowerCase().trim().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ');
+}
+
+const STATION_NAME_TO_CODE = { 
+  "Central":"CEN","Admiralty":"ADM","Tsim Sha Tsui":"TST","Jordan":"JOR","Yau Ma Tei":"YMT","Mong Kok":"MOK",
+  "Shek Kip Mei":"SKM","Kowloon Tong":"KOT","Lok Fu":"LOF","Wong Tai Sin":"WTS","Diamond Hill":"DIH","Choi Hung":"CHH",
+  "Kowloon Bay":"KOB","Ngau Tau Kok":"NTK","Kwun Tong":"KWT","Lam Tin":"LAT","Prince Edward":"PRE","Sham Shui Po":"SSP",
+  "Cheung Sha Wan":"CSW","Lai Chi Kok":"LCK","Mei Foo":"MEF","Lai King":"LAK","Kwai Fong":"KWF","Kwai Hing":"KWH",
+  "Tai Wo Hau":"TWH","Tsuen Wan":"TSW","Hong Kong":"HOK","Kowloon":"KOW","Olympic":"OLY","Tsing Yi":"TSY",
+  "Tung Chung":"TUC","Yau Tong":"YAT","Tiu Keng Leng":"TIK","Tseung Kwan O":"TKO","Hang Hau":"HAH","Po Lam":"POA",
+  "Nam Cheong":"NAC","Sunny Bay":"SUN","Disneyland Resort":"DIS","LOHAS Park":"LHP","Hung Hom":"HUH",
+  "Mong Kok East":"MKK","Tai Wai":"TAW","Sha Tin":"SHT","Fo Tan":"FOT","Racecourse":"RAC","University":"UNI",
+  "Tai Po Market":"TAP","Tai Wo":"TWO","Fanling":"FAN","Sheung Shui":"SHS","Lo Wu":"LOW","Lok Ma Chau":"LMC",
+  "East Tsim Sha Tsui":"ETS","Che Kung Temple":"CKT","Sha Tin Wai":"STW","City One":"CIO","Shek Mun":"SHM",
+  "Tai Shui Hang":"TSH","Heng On":"HEO","Ma On Shan":"MOS","Wu Kai Sha":"WKS","Austin":"AUS","Tsuen Wan West":"TWW",
+  "Kam Sheung Road":"KSR","Yuen Long":"YUL","Long Ping":"LOP","Tin Shui Wai":"TIS","Siu Hong":"SIH","Tuen Mun":"TUM",
+  "Sai Ying Pun":"SYP","HKU":"HKU","Kennedy Town":"KET","Ho Man Tin":"HOM","Whampoa":"WHA","Ocean Park":"OCP",
+  "Wong Chuk Hang":"WCH","Lei Tung":"LET","South Horizons":"SOH","Hin Keng":"HIK","Kai Tak":"KAT","Sung Wong Toi":"SUW",
+  "To Kwa Wan":"TKW","Exhibition Centre":"EXC","AsiaWorld-Expo":"AWE",
+  "North Point":"NOP","Quarry Bay":"QUB","Sheung Wan":"SHW","Wan Chai":"WAC","Causeway Bay":"CAB","Tin Hau":"TIH",
+  "Fortress Hill":"FOH","Tai Koo":"TAK","Sai Wan Ho":"SWH","Shau Kei Wan":"SKW","Heng Fa Chuen":"HFC","Chai Wan":"CHW",
+  "Airport":"AIR"
+};
+
+const API_URL = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php";
+const LINE_THEMES = { 
+  "AEL": { color: "#00888a", bg: "#e6f3f3" },
+  "TCL": { color: "#f68f26", bg: "#fef4e9" },
+  "TML": { color: "#9a3b26", bg: "#f5ebe9" },
+  "TKL": { color: "#6b208b", bg: "#f0e9f3" },
+  "EAL": { color: "#53b7e8", bg: "#eef8fd" },
+  "SIL": { color: "#b6bd00", bg: "#f8f9e6" },
+  "TWL": { color: "#e2231a", bg: "#fce9e8" },
+  "ISL": { color: "#0071ce", bg: "#e6f1fa" },
+  "KTL": { color: "#00ab4e", bg: "#e6f7ec" },
+  "DRL": { color: "#f173ac", bg: "#fef1f7" }
+};
+const LINES = { 
+  "AEL": { name: "機場快綫", stations: ["HOK","KOW","TSY","AIR","AWE"] },
+  "TCL": { name: "東涌綫", stations: ["HOK","KOW","OLY","NAC","LAK","TSY","SUN","TUC"] },
+  "TML": { name: "屯馬綫", stations: ["WKS","MOS","HEO","TSH","SHM","CIO","STW","CKT","TAW","HIK","DIH","KAT","SUW","TKW","HOM","HUH","ETS","AUS","NAC","MEF","TWW","KSR","YUL","LOP","TIS","SIH","TUM"] },
+  "TKL": { name: "將軍澳綫", stations: ["NOP","QUB","YAT","TIK","TKO","LHP","HAH","POA"] },
+  "EAL": { name: "東鐵綫", stations: ["ADM","EXC","HUH","MKK","KOT","TAW","SHT","FOT","RAC","UNI","TAP","TWO","FAN","SHS","LOW","LMC"] },
+  "SIL": { name: "南港島綫", stations: ["ADM","OCP","WCH","LET","SOH"] },
+  "TWL": { name: "荃灣綫", stations: ["CEN","ADM","TST","JOR","YMT","MOK","PRE","SSP","CSW","LCK","MEF","LAK","KWF","KWH","TWH","TSW"] },
+  "ISL": { name: "港島綫", stations: ["KET","HKU","SYP","SHW","CEN","ADM","WAC","CAB","TIH","FOH","NOP","QUB","TAK","SWH","SKW","HFC","CHW"] },
+  "KTL": { name: "觀塘綫", stations: ["WHA","HOM","YMT","MOK","PRE","SKM","KOT","LOF","WTS","DIH","CHH","KOB","NTK","KWT","LAT","YAT","TIK"] },
+  "DRL": { name: "迪士尼綫", stations: ["SUN","DIS"] }
+};
+const STATIONS = { 
+  "HOK":"香港站","KOW":"九龍站","TSY":"青衣站","AIR":"機場站","AWE":"亞洲博覽館站",
+  "OLY":"奧運站","NAC":"南昌站","LAK":"荔景站","SUN":"欣澳站","TUC":"東涌站",
+  "WKS":"烏溪沙站","MOS":"馬鞍山站","HEO":"恆安站","TSH":"大水坑站","SHM":"石門站",
+  "CIO":"第一城站","STW":"沙田圍站","CKT":"車公廟站","TAW":"大圍站","HIK":"顯徑站",
+  "DIH":"鑽石山站","KAT":"啟德站","SUW":"宋皇臺站","TKW":"土瓜灣站","HOM":"何文田站",
+  "HUH":"紅磡站","ETS":"尖東站","AUS":"柯士甸站","MEF":"美孚站","TWW":"荃灣西站",
+  "KSR":"錦上路站","YUL":"元朗站","LOP":"朗屏站","TIS":"天水圍站","SIH":"兆康站",
+  "TUM":"屯門站","NOP":"北角站","QUB":"鰂魚涌站","YAT":"油塘站","TIK":"調景嶺站",
+  "TKO":"將軍澳站","LHP":"康城站","HAH":"坑口站","POA":"寶琳站",
+  "ADM":"金鐘站","EXC":"會展站","MKK":"旺角東站","KOT":"九龍塘站","SHT":"沙田站",
+  "FOT":"火炭站","RAC":"馬場站","UNI":"大學站","TAP":"大埔墟站","TWO":"太和站",
+  "FAN":"粉嶺站","SHS":"上水站","LOW":"羅湖站","LMC":"落馬洲站",
+  "OCP":"海洋公園站","WCH":"黃竹坑站","LET":"利東站","SOH":"海怡半島站",
+  "CEN":"中環站","TST":"尖沙咀站","JOR":"佐敦站","YMT":"油麻地站","MOK":"旺角站",
+  "PRE":"太子站","SSP":"深水埗站","CSW":"長沙灣站","LCK":"荔枝角站",
+  "KWF":"葵芳站","KWH":"葵興站","TWH":"大窩口站","TSW":"荃灣站",
+  "KET":"堅尼地城站","HKU":"香港大學站","SYP":"西營盤站","SHW":"上環站","WAC":"灣仔站",
+  "CAB":"銅鑼灣站","TIH":"天后站","FOH":"炮台山站","TAK":"太古站","SWH":"西灣河站",
+  "SKW":"筲箕灣站","HFC":"杏花邨站","CHW":"柴灣站",
+  "WHA":"黃埔站","SKM":"石硤尾站","LOF":"樂富站","WTS":"黃大仙站","CHH":"彩虹站",
+  "KOB":"九龍灣站","NTK":"牛頭角站","KWT":"觀塘站","LAT":"藍田站","DIS":"迪士尼站"
+};
+
+async function loadOfficialFares() { 
+  const targetUrl = 'https://opendata.mtr.com.hk/data/mtr_lines_fares.csv';
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+  ];
+
+  let csvText = null;
+  for (let proxy of proxies) {
+    try {
+      const res = await fetch(proxy, { cache: 'no-store' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text.includes('SRC_STATION_NAME') && text.includes('OCT_ADT_FARE')) {
+          csvText = text;
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!csvText) return false;
+
+  const rows = csvText.trim().split(/\r?\n/);
+  const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, '').replace(/^\uFEFF/, '').toUpperCase());
+
+  const getIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+  const idxSrc = getIdx(['SRC_STATION_NAME']);
+  const idxDest = getIdx(['DEST_STATION_NAME']);
+  const idxAdultOct = getIdx(['OCT_ADT_FARE']);
+  const idxAdultTkt = getIdx(['SINGLE_ADT_FARE']);
+  const idxChildOct = getIdx(['OCT_CON_CHILD_FARE']);
+  const idxChildTkt = getIdx(['SINGLE_CON_CHILD_FARE']);
+
+  const FLEX_MAP = {};
+  Object.entries(STATION_NAME_TO_CODE).forEach(([name, code]) => { FLEX_MAP[normalizeStationName(name)] = code; });
+  Object.entries(STATIONS).forEach(([code, name]) => { FLEX_MAP[normalizeStationName(name)] = code; });
+
+  FLEX_MAP['tsuen wan'] = 'TSW';
+  FLEX_MAP['tai wo hau'] = 'TWH';
+  FLEX_MAP['hong kong'] = 'HOK';
+  FLEX_MAP['kowloon'] = 'KOW';
+  FLEX_MAP['olympic'] = 'OLY';
+  FLEX_MAP['nam cheong'] = 'NAC';
+  FLEX_MAP['tsim sha tsui'] = 'TST';
+  FLEX_MAP['mong kok'] = 'MOK';
+
+  FARE_LOOKUP = {};
+  let loadedCount = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    if (cols.length < Math.max(idxSrc, idxDest, idxAdultOct)) continue;
+
+    const srcKey = normalizeStationName(cols[idxSrc]);
+    const destKey = normalizeStationName(cols[idxDest]);
+
+    const srcCode = FLEX_MAP[srcKey] || srcKey.toUpperCase();
+    const destCode = FLEX_MAP[destKey] || destKey.toUpperCase();
+
+    if (srcCode && destCode && STATIONS[srcCode] && STATIONS[destCode]) {
+      const adultOct = parseFloat(cols[idxAdultOct]) || 0;
+      const adultTkt = parseFloat(cols[idxAdultTkt]) || 0;
+      const childOct = parseFloat(cols[idxChildOct]) || 0;
+      const childTkt = parseFloat(cols[idxChildTkt]) || 0;
+
+      if (!FARE_LOOKUP[srcCode]) FARE_LOOKUP[srcCode] = {};
+      FARE_LOOKUP[srcCode][destCode] = { adultOct, adultTkt, childOct, childTkt };
+      if (!FARE_LOOKUP[destCode]) FARE_LOOKUP[destCode] = {};
+      FARE_LOOKUP[destCode][srcCode] = { adultOct, adultTkt, childOct, childTkt };
+
+      loadedCount++;
+    }
+  }
+
+  isFareLoaded = true;
+  return true;
+}
+
+function getFare(origin, destination) { 
+  let fare = FARE_LOOKUP[origin]?.[destination] || FARE_LOOKUP[destination]?.[origin];
+  if (fare) return fare;
+
+  const fallbackFares = {
+    'TSW': { 'TWH': {adultOct: 4.9, adultTkt: 5.0, childOct: 2.4, childTkt: 2.5} },
+    'TWH': { 'TSW': {adultOct: 4.9, adultTkt: 5.0, childOct: 2.4, childTkt: 2.5} },
+    'HOK': { 'NAC': {adultOct: 13.2, adultTkt: 15.5, childOct: 6.5, childTkt: 7.5} },
+    'KOW': { 'OLY': {adultOct: 4.9, adultTkt: 6.0, childOct: 2.4, childTkt: 3.0} }
+  };
+  if (fallbackFares[origin] && fallbackFares[origin][destination]) return fallbackFares[origin][destination];
+  if (fallbackFares[destination] && fallbackFares[destination][origin]) return fallbackFares[destination][origin];
+  return { adultOct: NaN, adultTkt: NaN, childOct: NaN, childTkt: NaN };
+}
+
+const STATION_COORDS = { 
+  "ADM":[22.2790,114.1655],"AWE":[22.3214,113.9400],"AIR":[22.3133,113.9367],"AUS":[22.3053,114.1661],
+  "CAB":[22.2814,114.1858],"CEN":[22.2819,114.1582],"CHH":[22.3347,114.2051],"CHW":[22.2647,114.2375],
+  "CIO":[22.3830,114.2034],"CKT":[22.3748,114.1861],"CSW":[22.3375,114.1489],"DIH":[22.3417,114.2014],
+  "DIS":[22.3156,114.0452],"ETS":[22.2975,114.1722],"EXC":[22.2828,114.1731],"FAN":[22.4919,114.1397],
+  "FOH":[22.2883,114.1938],"FOT":[22.3960,114.1989],"HAH":[22.3142,114.2636],"HEO":[22.4176,114.2255],
+  "HFC":[22.2769,114.2398],"HIK":[22.3638,114.1707],"HOM":[22.3097,114.1875],"HOK":[22.2848,114.1581],
+  "HUH":[22.3028,114.1818],"JOR":[22.3048,114.1716],"KAT":[22.3292,114.1992],"KET":[22.2828,114.1278],
+  "KOB":[22.3231,114.2139],"KOT":[22.3375,114.1764],"KOW":[22.3047,114.1615],"KSR":[22.4348,114.0635],
+  "KWF":[22.3575,114.1278],"KWH":[22.3631,114.1319],"LAT":[22.3072,114.2264],"LAK":[22.3486,114.1261],
+  "LCK":[22.3372,114.1419],"LET":[22.2497,114.1958],"LHP":[22.2959,114.2698],"LOP":[22.4477,114.0253],
+  "LOW":[22.5283,114.1133],"LMC":[22.5145,114.0656],"MEF":[22.3379,114.1379],"MKK":[22.3223,114.1714],
+  "MOK":[22.3194,114.1692],"MOS":[22.4247,114.2342],"NAC":[22.3270,114.1536],"NOP":[22.2916,114.2004],
+  "NTK":[22.3153,114.2186],"OCP":[22.2486,114.1747],"OLY":[22.3178,114.1602],"POA":[22.3225,114.2597],
+  "PRE":[22.3251,114.1683],"QUB":[22.2861,114.2075],"RAC":[22.4013,114.2031],"SHM":[22.3889,114.2081],
+  "SHT":[22.3828,114.1875],"SHW":[22.2865,114.1517],"SIH":[22.4120,113.9789],"SKM":[22.3347,114.1689],
+  "SKW":[22.2793,114.2288],"SOH":[22.2428,114.1969],"SSP":[22.3344,114.1592],"STW":[22.3786,114.1967],
+  "SUN":[22.3318,114.0288],"SUW":[22.3203,114.1889],"SWH":[22.2822,114.2218],"SYP":[22.2858,114.1427],
+  "TAK":[22.2847,114.2181],"TAP":[22.4503,114.1694],"TAW":[22.3731,114.1789],"TIH":[22.2825,114.1917],
+  "TIK":[22.3048,114.2528],"TKO":[22.3072,114.2603],"TKW":[22.3139,114.1892],"TSH":[22.4056,114.2208],
+  "TSW":[22.3713,114.1179],"TSY":[22.3591,114.1078],"TUC":[22.2891,113.9415],"TUM":[22.3964,113.9792],
+  "TWH":[22.3710,114.1250],"TWO":[22.4511,114.1613],"UNI":[22.4131,114.2103],"WAC":[22.2797,114.1753],
+  "WCH":[22.2522,114.1828],"WHA":[22.3045,114.1887],"WKS":[22.4297,114.2417],"WTS":[22.3411,114.2042],
+  "YAT":[22.2985,114.2364],"YMT":[22.3140,114.1705],"YUL":[22.4458,114.0322],"TIS":[22.4481,114.0042],
+  "HKU":[22.2839,114.1353],"TWW":[22.3739,114.1119],"KWT":[22.3158,114.2258],"LOF":[22.3381,114.1870],
+  "SHS":[22.5028,114.1278],"TST":[22.2975,114.1722]
+};
+
+const AUTO_REFRESH_MS = 20000;
+
+const AVG_INTERVAL_TIME = {
+  "AEL": 9.0,
+  "TCL": 6.5,
+  "TML": 3.4,
+  "TKL": 3.2,
+  "EAL": 3.7,
+  "SIL": 4.0,
+  "TWL": 2.4,
+  "ISL": 2.3,
+  "KTL": 2.4,
+  "DRL": 3.0
+};
+
+const graph = {};
+Object.entries(LINES).forEach(([code, info]) => {
+  const stations = info.stations;
+  for (let i = 0; i < stations.length - 1; i++) {
+    const a = stations[i];
+    const b = stations[i + 1];
+    if (!graph[a]) graph[a] = [];
+    if (!graph[b]) graph[b] = [];
+    graph[a].push({ to: b, line: code });
+    graph[b].push({ to: a, line: code });
+  }
+});
+
+function findPath(start, end) {
+  if (start === end) return [{ station: start, line: null }];
+  const queue = [{ station: start, path: [{ station: start, line: null }], visited: new Set([start]) }];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    for (const neighbor of graph[current.station] || []) {
+      if (current.visited.has(neighbor.to)) continue;
+      const newVisited = new Set(current.visited);
+      newVisited.add(neighbor.to);
+      const newPath = [...current.path, { station: neighbor.to, line: neighbor.line }];
+      if (neighbor.to === end) return newPath;
+      queue.push({ station: neighbor.to, path: newPath, visited: newVisited });
+    }
+  }
+  return null;
+}
+
+let multiLineMarkers = {};
+let animationFrameId = null;
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : {r: 200, g: 16, b: 46};
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => {
+    const hex = Math.round(x).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function lerpColor(hex1, hex2, t) {
+  const c1 = hexToRgb(hex1);
+  const c2 = hexToRgb(hex2);
+  if (!c1 || !c2) return hex1;
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+  return rgbToHex(r, g, b);
+}
+
+function animateMultiLineMarkers() {
+  const now = Date.now();
+  Object.keys(multiLineMarkers).forEach(code => {
+    const item = multiLineMarkers[code];
+    const colors = item.colors;
+    if (!colors || colors.length < 2) return;
+    const cycleDuration = 3000;
+    const totalTime = colors.length * cycleDuration;
+    const elapsed = now % totalTime;
+    const segmentIndex = Math.floor(elapsed / cycleDuration);
+    const progress = (elapsed % cycleDuration) / cycleDuration;
+    const color1 = colors[segmentIndex % colors.length];
+    const color2 = colors[(segmentIndex + 1) % colors.length];
+    const currentColor = lerpColor(color1, color2, progress);
+    if (item.marker) {
+      item.marker.setStyle({ fillColor: currentColor });
+    }
+  });
+  animationFrameId = requestAnimationFrame(animateMultiLineMarkers);
+}
+
+const lineSelect = document.getElementById("line");
+const staSelect = document.getElementById("sta");
+const btnQuery = document.getElementById("btnQuery");
+const btnRefresh = document.getElementById("btnRefresh");
+const statusDiv = document.getElementById("status");
+const resultDiv = document.getElementById("result");
+const footerRemark = document.getElementById("footerRemark");
+const fromLine = document.getElementById("fromLine");
+const fromSta = document.getElementById("fromSta");
+const toLine = document.getElementById("toLine");
+const toSta = document.getElementById("toSta");
+const btnPlan = document.getElementById("btnPlan");
+const planStatus = document.getElementById("planStatus");
+const planResult = document.getElementById("planResult");
+
+let isQuerying = false;
+let currentLine = "";
+let currentSta = "";
+let autoTimer = null;
+let map = null;
+
+let latestUserLat = null;
+let latestUserLng = null;
+let latestNearestStation = null;
+
+const STATION_LINES = {};
+Object.keys(LINES).forEach(code => {
+  LINES[code].stations.forEach(sta => {
+    if (!STATION_LINES[sta]) STATION_LINES[sta] = [];
+    STATION_LINES[sta].push(code);
+  });
+});
+
+function updateTheme(lineCode) {
+  if (lineCode && LINE_THEMES[lineCode]) {
+    document.documentElement.style.setProperty('--theme-color', LINE_THEMES[lineCode].color);
+    document.documentElement.style.setProperty('--theme-bg-light', LINE_THEMES[lineCode].bg);
+  } else {
+    document.documentElement.style.setProperty('--theme-color', '#c8102e');
+    document.documentElement.style.setProperty('--theme-bg-light', '#fdf2f4');
+  }
+}
+
+function saveLastSelection(line, sta) {
+  localStorage.setItem('lastMTRLine', line);
+  localStorage.setItem('lastMTRSta', sta);
+}
+
+function loadLastSelection() {
+  const lastLine = localStorage.getItem('lastMTRLine');
+  const lastSta = localStorage.getItem('lastMTRSta');
+  if (lastLine && LINES[lastLine]) {
+    lineSelect.value = lastLine;
+    populateStations();
+    if (lastSta && LINES[lastLine].stations.includes(lastSta)) {
+      staSelect.value = lastSta;
+      updateButtonState();
+    }
+  }
+}
+
+function queryFromMap(line, sta) {
+  lineSelect.value = line;
+  populateStations();
+  staSelect.value = sta;
+  updateTheme(line);
+  updateButtonState();
+  performQuery(true);
+  if (map) map.closePopup();
+}
+
+let userMarker = null;
+let connectionLine = null;
+let watchId = null;
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c * 1000;
+}
+
+function findNearestStation(userLat, userLng) {
+  let nearest = null;
+  let minDist = Infinity;
+  Object.keys(STATION_COORDS).forEach(code => {
+    const [staLat, staLng] = STATION_COORDS[code];
+    const dist = getDistance(userLat, userLng, staLat, staLng);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = { 
+        code, 
+        name: STATIONS[code] || code, 
+        lat: staLat, 
+        lng: staLng, 
+        distance: Math.round(dist) 
+      };
+    }
+  });
+  return nearest;
+}
+
+function updateUserLocation(position) {
+  const lat = position.coords.latitude;
+  const lng = position.coords.longitude;
+
+  latestUserLat = lat;
+  latestUserLng = lng;
+  latestNearestStation = findNearestStation(lat, lng);
+
+  if (userMarker) {
+    userMarker.setLatLng([lat, lng]);
+  } else if (map) {
+    const userIcon = L.divIcon({
+      className: 'custom-user-marker',
+      html: `<div style="background:#3b82f6;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.3);"></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+    userMarker = L.marker([lat, lng], {icon: userIcon}).addTo(map)
+      .bindPopup('<strong>📍 您的實時位置</strong>');
+  }
+
+  const banner = document.getElementById('nearest-banner');
+  const nearest = latestNearestStation;
+  if (nearest && banner) {
+    document.getElementById('nearest-name').textContent = nearest.name;
+    document.getElementById('nearest-distance').innerHTML = `距離 <strong>${nearest.distance} 米</strong>`;
+    document.getElementById('nearest-code').innerHTML = `站碼：<strong>${nearest.code}</strong>`;
+    banner.style.display = 'flex';
+  }
+
+  if (map && nearest) {
+    if (connectionLine) map.removeLayer(connectionLine);
+    connectionLine = L.polyline([[lat, lng], [nearest.lat, nearest.lng]], {
+      color: '#3b82f6',
+      weight: 3.5,
+      opacity: 0.9,
+      dashArray: '10, 15',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    let offset = 0;
+    const animateLine = () => {
+      if (!connectionLine) return;
+      offset = (offset + 1) % 50;
+      connectionLine.setStyle({ dashOffset: offset + 'px' });
+      requestAnimationFrame(animateLine);
+    };
+    animateLine();
+
+    const bounds = L.latLngBounds([[lat, lng], [nearest.lat, nearest.lng]]);
+    map.fitBounds(bounds, { padding: [80, 80], maxZoom: 16, animate: true });
+  }
+}
+
+window.requestUserLocation = function() {
+  const btn = document.getElementById('gps-btn');
+  if (btn) {
+    btn.style.transition = 'all 0.3s';
+    btn.style.transform = 'rotate(360deg)';
+    setTimeout(() => { btn.style.transform = ''; }, 800);
+  }
+
+  if (!navigator.geolocation) {
+    alert('您的瀏覽器不支援地理位置功能');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      updateUserLocation(position);
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      watchId = navigator.geolocation.watchPosition(updateUserLocation, () => {}, { enableHighAccuracy: true, maximumAge: 8000, timeout: 12000 });
+      if (latestNearestStation) {
+        setTimeout(() => queryNearestStation(), 600);
+      }
+    },
+    (error) => {
+      let msg = '無法取得位置';
+      if (error.code === 1) msg = '您已拒絕位置權限';
+      else if (error.code === 2) msg = '位置資訊不可用';
+      else if (error.code === 3) msg = '取得位置逾時';
+      alert(msg + '，請確認瀏覽器權限已開啟');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+};
+
+window.queryNearestStation = function() {
+  if (!latestNearestStation) return;
+  const staCode = latestNearestStation.code;
+  const lines = STATION_LINES[staCode] || [];
+  if (lines.length === 0) return;
+
+  lineSelect.value = lines[0];
+  populateStations();
+  staSelect.value = staCode;
+  updateTheme(lines[0]);
+  updateButtonState();
+  performQuery(true);
+  document.getElementById('section2').scrollIntoView({ behavior: 'smooth' });
+};
+
+function updateButtonState() {
+  const hasLine = lineSelect.value;
+  const hasSta = staSelect.value;
+  staSelect.disabled = !hasLine;
+  btnQuery.disabled = !hasLine || !hasSta || isQuerying;
+  btnRefresh.disabled = isQuerying || !currentLine || !currentSta;
+}
+
+function populateLines() {
+  Object.keys(LINES).forEach(code => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = LINES[code].name;
+    lineSelect.appendChild(opt);
+  });
+}
+
+function populateStations() {
+  staSelect.innerHTML = '<option value="">請選擇車站…</option>';
+  const line = lineSelect.value;
+  updateTheme(line);
+  if (!line) return;
+  LINES[line].stations.forEach(code => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = STATIONS[code] || code;
+    staSelect.appendChild(opt);
+  });
+  updateButtonState();
+}
+
+function populateLineSelect(selectElement) {
+  selectElement.innerHTML = '<option value="">請選擇路線…</option>';
+  Object.keys(LINES).forEach(code => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = LINES[code].name;
+    selectElement.appendChild(opt);
+  });
+}
+
+function populateStaSelect(lineSelectId, staSelectId) {
+  const lineSelectEl = document.getElementById(lineSelectId);
+  const staSelectEl = document.getElementById(staSelectId);
+  const line = lineSelectEl.value;
+  if (lineSelectId === "fromLine") updateTheme(line);
+  staSelectEl.innerHTML = '<option value="">請選擇車站…</option>';
+  if (!line) {
+    staSelectEl.disabled = true;
+    return;
+  }
+  staSelectEl.disabled = false;
+  LINES[line].stations.forEach(code => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = STATIONS[code] || code;
+    staSelectEl.appendChild(opt);
+  });
+}
+
+function updatePlanButton() {
+  const fromL = fromLine.value;
+  const fromS = fromSta.value;
+  const toL = toLine.value;
+  const toS = toSta.value;
+  const valid = fromL && fromS && toL && toS && fromS !== toS;
+  btnPlan.disabled = !valid;
+  planStatus.textContent = valid ? "" : "請完整選擇出發及終點路線與車站";
+}
+
+async function performQuery(shouldScroll = false) {
+  const line = lineSelect.value;
+  const sta = staSelect.value;
+  if (!line || !sta) return;
+  currentLine = line;
+  currentSta = sta;
+  isQuerying = true;
+  updateButtonState();
+  statusDiv.innerHTML = `<span class="spinner"></span>正在同步最新數據...`;
+  resultDiv.innerHTML = `
+    <div style="text-align:center;padding:60px 20px;">
+      <div class="spinner" style="margin-bottom:18px;"></div>
+      <div style="color:#6b7280;font-size:1.05rem;">正在查詢 ${LINES[line].name} ${STATIONS[sta]} 的最新班次</div>
+      <small style="color:#9ca3af;">資料來自港鐵官方即時 API</small>
+    </div>`;
+  footerRemark.style.display = "none";
+  try {
+    const url = `${API_URL}?line=${line}&sta=${sta}&lang=TC`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`網絡錯誤 ${res.status}`);
+    const json = await res.json();
+    if (json.status != 1) throw new Error(json.message || "API 錯誤");
+    const dataKeys = Object.keys(json.data || {});
+    if (dataKeys.length === 0) throw new Error("無車站資料");
+    const key = dataKeys[0];
+    const block = json.data[key];
+    if (!block) throw new Error("無車站資料");
+    renderResult(block, line, sta, json);
+    statusDiv.textContent = `最後更新：${json.curr_time || json.sys_time || "—"}`;
+    let remark = "";
+    if (json.sys_time) remark += `系統時間：${json.sys_time} `;
+    if (json.curr_time) remark += `當前時間：${json.curr_time} `;
+    if (json.isdelay) remark += `狀態：${json.isdelay === "Y" ? "有延誤" : "正常"}`;
+    if (json.message) remark += `<br>${json.message}`;
+    if (remark) {
+      footerRemark.innerHTML = remark;
+      footerRemark.style.display = "block";
+    }
+    saveLastSelection(line, sta);
+
+    if (latestNearestStation && latestNearestStation.code !== sta && map) {
+      const pathToStation = findPath(latestNearestStation.code, sta);
+      if (pathToStation && pathToStation.length >= 2) drawSpeedBeltRoute(pathToStation);
+      const nearestLines = STATION_LINES[latestNearestStation.code] || [];
+      if (nearestLines.length > 0) {
+        fromLine.value = nearestLines[0];
+        populateStaSelect("fromLine", "fromSta");
+        fromSta.value = latestNearestStation.code;
+      }
+      toLine.value = currentLine;
+      populateStaSelect("toLine", "toSta");
+      toSta.value = sta;
+      updatePlanButton();
+    }
+
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = setInterval(() => performQuery(false), AUTO_REFRESH_MS);
+  } catch (err) {
+    console.error(err);
+    resultDiv.innerHTML = `<div class="error-msg">查詢失敗<br>${err.message}</div>`;
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  } finally {
+    isQuerying = false;
+    updateButtonState();
+    if (shouldScroll) document.getElementById('section2').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function renderResult(block, lineCode, staCode, json) { 
+  const lineName = LINES[lineCode].name;
+  const staName = STATIONS[staCode] || staCode;
+  let html = `<h2 class="route-title">${lineName} — ${staName} 到站時間</h2>`;
+  const directions = [{ key: "UP" }, { key: "DOWN" }];
+  let hasAnyTrain = false;
+  directions.forEach(dir => {
+    const trains = (block[dir.key] || []).slice(0, 10);
+    if (trains.length === 0) return;
+    hasAnyTrain = true;
+    const uniqueDestCodes = [...new Set(trains.map(t => t.dest).filter(d => d))];
+    const uniqueDestNames = uniqueDestCodes.map(code => STATIONS[code] || code).filter(name => name !== "未知");
+    let dirName = uniqueDestNames.length > 0 ? uniqueDestNames.join(' / ') : "未知方向";
+    dirName = `往 ${dirName}`;
+    html += `<div class="bus-stop"><div class="stop-name">${dirName}</div>`;
+    const visibleTrains = trains.slice(0, 2);
+    const hiddenTrains = trains.slice(2);
+    visibleTrains.forEach(t => {
+      let ttnt = Number(t.ttnt || 0);
+      let timeDisplay = ttnt <= 0 ? "即將到站" : `${ttnt} 分鐘`;
+      const isImmediate = ttnt <= 0;
+      const platNum = t.plat || "-";
+      html += `<div class="bus-item"><div class="bus-time${isImmediate ? " immediate" : ""}">${timeDisplay}</div><div class="plat">月台 ${platNum}</div></div>`;
+    });
+    if (hiddenTrains.length > 0) {
+      html += `<div class="hidden-trains">`;
+      hiddenTrains.forEach(t => {
+        let ttnt = Number(t.ttnt || 0);
+        let timeDisplay = ttnt <= 0 ? "即將到站" : `${ttnt} 分鐘`;
+        const isImmediate = ttnt <= 0;
+        const platNum = t.plat || "-";
+        html += `<div class="bus-item"><div class="bus-time${isImmediate ? " immediate" : ""}">${timeDisplay}</div><div class="plat">月台 ${platNum}</div></div>`;
+      });
+      html += `</div>`;
+      html += `<div class="more-btn-container"><button class="more-btn" onclick="toggleMore(this)">▼ 顯示更多班次</button></div>`;
+    }
+    html += `</div>`;
+  });
+  if (!hasAnyTrain) {
+    html += `<div class="no-service">暫無即將到站的列車<br><small>可能為尾班車後或有特別服務安排</small></div>`;
+  }
+  resultDiv.innerHTML = html;
+}
+
+function toggleMore(btn) { 
+  const hiddenDiv = btn.parentNode.previousElementSibling;
+  if (!hiddenDiv || !hiddenDiv.classList.contains('hidden-trains')) return;
+  const prevScrollY = window.scrollY;
+  if (hiddenDiv.style.maxHeight === '0px' || !hiddenDiv.style.maxHeight) {
+    hiddenDiv.style.maxHeight = hiddenDiv.scrollHeight + 'px';
+    btn.textContent = '▲ 收起班次';
+  } else {
+    hiddenDiv.style.maxHeight = '0px';
+    btn.textContent = '▼ 顯示更多班次';
+  }
+  setTimeout(() => window.scrollTo(0, prevScrollY), 450);
+}
+
+let plannedRouteLayer = null;
+let routeAnimationFrame = null;
+
+function clearPlannedRoute() {
+  if (plannedRouteLayer) {
+    map.removeLayer(plannedRouteLayer);
+    plannedRouteLayer = null;
+  }
+  if (routeAnimationFrame) {
+    cancelAnimationFrame(routeAnimationFrame);
+    routeAnimationFrame = null;
+  }
+}
+
+function drawSpeedBeltRoute(path) {
+  clearPlannedRoute();
+  if (!path || path.length < 2) return;
+
+  const coords = path.map(p => STATION_COORDS[p.station]).filter(Boolean);
+  if (coords.length < 2) return;
+
+  const baseLine = L.polyline(coords, { color: '#10b981', weight: 8, opacity: 0.75, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+  const beltLayer = L.polyline(coords, { color: '#ffffff', weight: 4, opacity: 1, dashArray: '20, 15', dashOffset: '0', lineJoin: 'round', lineCap: 'round' }).addTo(map);
+
+  plannedRouteLayer = L.layerGroup([baseLine, beltLayer]).addTo(map);
+
+  let offset = 0;
+  const animateBelt = () => {
+    if (!plannedRouteLayer) return;
+    offset = (offset - 3.5 + 70) % 70;
+    beltLayer.setStyle({ dashOffset: `${offset}px` });
+    routeAnimationFrame = requestAnimationFrame(animateBelt);
+  };
+  animateBelt();
+
+  const bounds = L.latLngBounds(coords);
+  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true, duration: 1.2 });
+}
+
+async function performPlan() {
+  const start = fromSta.value;
+  const end = toSta.value;
+  const fromLineName = LINES[fromLine.value].name;
+  const toLineName = LINES[toLine.value].name;
+
+  if (start === end) {
+    planResult.innerHTML = `<div class="error-msg">出發站與終點站相同，請重新選擇</div>`;
+    return;
+  }
+
+  if (!isFareLoaded) {
+    planStatus.innerHTML = `<span class="spinner"></span> 正在載入官方最新票價...`;
+    await loadOfficialFares();
+    planStatus.textContent = "";
+  }
+
+  const path = findPath(start, end);
+  if (!path) {
+    planResult.innerHTML = `<div class="error-msg">無法找到路線，請確認車站是否可達</div>`;
+    return;
+  }
+
+  drawSpeedBeltRoute(path);
+
+  let html = `<h2 class="route-title">從 ${fromLineName} ${STATIONS[start]} 到 ${toLineName} ${STATIONS[end]}</h2>`;
+  const totalStops = path.length;
+  let segments = [];
+  if (path.length >= 2) {
+    let currentLine = path[1].line;
+    let currentFrom = path[0].station;
+    let currentStations = [path[0].station, path[1].station];
+    for (let i = 2; i < path.length; i++) {
+      const entry = path[i];
+      if (entry.line !== currentLine) {
+        segments.push({ line: currentLine, from: currentFrom, to: path[i - 1].station, stations: currentStations.slice() });
+        currentFrom = path[i - 1].station;
+        currentStations = [currentFrom, entry.station];
+        currentLine = entry.line;
+      } else {
+        currentStations.push(entry.station);
+      }
+    }
+    segments.push({ line: currentLine, from: currentFrom, to: end, stations: currentStations });
+  }
+
+  const transfers = segments.length - 1;
+  let rideTime = 0;
+  segments.forEach(seg => {
+    const intervalsInSeg = seg.stations.length - 1;
+    const avg = AVG_INTERVAL_TIME[seg.line] || 3;
+    rideTime += intervalsInSeg * avg;
+  });
+  const transferPenalty = transfers * 5.5 + 2;
+  let estimatedMinutes = Math.max(1, Math.round(rideTime + transferPenalty));
+
+  const fares = getFare(start, end);
+  const formatPrice = (p) => isNaN(p) ? "N/A" : `HK$${p.toFixed(1)}`;
+
+  html += `<p style="text-align:center; font-size:1.35rem; margin:0.9em 0 0.4em; color:var(--theme-color); font-weight:800;">預計車程約 ${estimatedMinutes} 分鐘</p>`;
+  
+  html += `
+  <div class="fare-toggle-wrapper">
+    <div class="fare-toggle-container">
+      <button class="fare-tab active oct" id="tab-oct" onclick="toggleFareType(0)">
+        <img src="8.webp" alt="Octopus">
+        <span>八達通</span>
+      </button>
+      <button class="fare-tab tkt" id="tab-tkt" onclick="toggleFareType(1)">
+        <img src="TI.jpg" alt="Ticket">
+        <span>單程票</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="fareContent">
+    <div class="fare-grid">
+      <div class="fare-header">票種</div>
+      <div class="fare-header" id="fareHeader1">八達通</div>
+      <div class="fare-header" id="fareHeader2" style="display:none;">單程票</div>
+      
+      <div class="fare-row-title">成人</div>
+      <div class="fare-price price-oct" id="adultOct">${formatPrice(fares.adultOct)}</div>
+      <div class="fare-price price-tkt" id="adultTkt" style="display:none;">${formatPrice(fares.adultTkt)}</div>
+      
+      <div class="fare-row-title">小童 / 長者</div>
+      <div class="fare-price price-oct" id="childOct">${formatPrice(fares.childOct)}</div>
+      <div class="fare-price price-tkt" id="childTkt" style="display:none;">${formatPrice(fares.childTkt)}</div>
+    </div>
+  </div>`;
+
+  html += `<p style="text-align:center; font-size:1rem; margin:0.9em 0; color:#374151; font-weight:600;">
+    共 ${totalStops} 站${transfers > 0 ? `，需轉乘 ${transfers} 次` : "，直達無需轉乘"}
+  </p>`;
+
+  segments.forEach((seg, idx) => {
+    const lineName = LINES[seg.line].name;
+    const toName = STATIONS[seg.to];
+    const segmentColor = LINE_THEMES[seg.line] ? LINE_THEMES[seg.line].color : '#c8102e';
+    html += `<div class="bus-stop" style="border-left: 4px solid ${segmentColor};">
+      <div class="stop-name" style="color:${segmentColor}; border-bottom-color:${segmentColor}40;">乘搭 ${lineName} 往 ${toName}</div>
+      <div class="segment-stations">${seg.stations.map(s => STATIONS[s]).join(' <span style="color:#9ca3af;">→</span> ')}</div>
+    </div>`;
+    if (idx < segments.length - 1) {
+      html += `<div class="transfer-note">於 ${toName} 轉車</div>`;
+    }
+  });
+
+  planResult.innerHTML = html;
+  setTimeout(() => { document.getElementById('section1').scrollIntoView({ behavior: 'smooth' }); }, 700);
+}
+
+window.toggleFareType = function(type) {
+  const tabOct = document.getElementById('tab-oct');
+  const tabTkt = document.getElementById('tab-tkt');
+  const header1 = document.getElementById('fareHeader1');
+  const header2 = document.getElementById('fareHeader2');
+  const octPrices = document.querySelectorAll('.price-oct');
+  const tktPrices = document.querySelectorAll('.price-tkt');
+  
+  if (type === 0) {
+    tabOct.classList.add('active'); tabTkt.classList.remove('active');
+    header1.style.display = 'block'; header2.style.display = 'none';
+    octPrices.forEach(el => el.style.display = 'block');
+    tktPrices.forEach(el => el.style.display = 'none');
+  } else {
+    tabTkt.classList.add('active'); tabOct.classList.remove('active');
+    header1.style.display = 'none'; header2.style.display = 'block';
+    octPrices.forEach(el => el.style.display = 'none');
+    tktPrices.forEach(el => el.style.display = 'block');
+  }
+};
+
+function initMap() {
+  map = L.map('map').setView([22.3193, 114.1694], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
+  }).addTo(map);
+
+  Object.keys(STATIONS).forEach(code => {
+    const coord = STATION_COORDS[code];
+    if (!coord) return;
+    const linesAtSta = STATION_LINES[code] || [];
+    const primaryLine = linesAtSta.length > 0 ? linesAtSta[0] : null;
+    const markerColor = primaryLine && LINE_THEMES[primaryLine] ? LINE_THEMES[primaryLine].color : '#c8102e';
+    
+    const marker = L.circleMarker(coord, { 
+      radius: 8, 
+      fillColor: markerColor, 
+      color: "#ffffff", 
+      weight: 2.5, 
+      opacity: 1, 
+      fillOpacity: 0.85 
+    }).addTo(map);
+
+    if (linesAtSta.length > 1) {
+      const colors = linesAtSta.map(l => LINE_THEMES[l] ? LINE_THEMES[l].color : '#c8102e');
+      multiLineMarkers[code] = {
+        marker: marker,
+        colors: colors
+      };
+    }
+
+    const name = STATIONS[code];
+    const lines = STATION_LINES[code] || [];
+    let popupContent = `<strong>${name}</strong><br><span style="color:#6b7280;font-size:0.85rem;">代碼：${code}</span>`;
+    if (lines.length > 0) {
+      popupContent += `<div style="margin-top:9px;text-align:center;display:flex;flex-direction:column;gap:4px;">`;
+      lines.forEach(l => {
+        const lineData = LINES[l];
+        const lineColor = LINE_THEMES[l] ? LINE_THEMES[l].color : '#c8102e';
+        popupContent += `<button onclick="queryFromMap('${l}','${code}')" style="background-color:${lineColor};color:white;border:none;padding:5px 9px;border-radius:6px;font-size:0.88rem;cursor:pointer;">查詢 ${lineData.name}</button>`;
+      });
+      popupContent += `</div>`;
+    }
+    marker.bindPopup(popupContent);
+  });
+
+  if (Object.keys(multiLineMarkers).length > 0) {
+    animateMultiLineMarkers();
+  }
+}
+
+lineSelect.addEventListener("change", populateStations);
+staSelect.addEventListener("change", updateButtonState);
+btnQuery.addEventListener("click", () => performQuery(true));
+btnRefresh.addEventListener("click", () => performQuery(true));
+fromLine.addEventListener("change", () => { populateStaSelect("fromLine", "fromSta"); updatePlanButton(); });
+toLine.addEventListener("change", () => { populateStaSelect("toLine", "toSta"); updatePlanButton(); });
+fromSta.addEventListener("change", updatePlanButton);
+toSta.addEventListener("change", updatePlanButton);
+btnPlan.addEventListener("click", performPlan);
+
+populateLines();
+populateLineSelect(fromLine);
+populateLineSelect(toLine);
+updatePlanButton();
+loadLastSelection();
+initMap();
+loadOfficialFares();
+
+console.log("🚀 MTR 到站時間查詢 — PWA 已啟用（橙色列車快捷圖標） — 資料已完整補全");
+
+// ====================== 新增：抽屜式選單功能 ======================
+function toggleDrawer() {
+  const drawer = document.getElementById('side-drawer');
+  const overlay = document.getElementById('drawer-overlay');
+  const hamburgers = document.querySelectorAll('.hamburger');
+
+  const isOpen = drawer.classList.contains('open');
+
+  if (isOpen) {
+    drawer.classList.remove('open');
+    overlay.classList.remove('show');
+    hamburgers.forEach(h => h.classList.remove('open'));
+  } else {
+    drawer.classList.add('open');
+    overlay.classList.add('show');
+    hamburgers.forEach(h => h.classList.add('open'));
+  }
+}
+
+function goToSection(section) {
+  const target = document.getElementById(`section${section}`);
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// ESC 鍵關閉抽屜
+document.addEventListener('keydown', function(e) {
+  if (e.key === "Escape") {
+    const drawer = document.getElementById('side-drawer');
+    if (drawer && drawer.classList.contains('open')) {
+      toggleDrawer();
+    }
+  }
+});
+
+window.addEventListener('beforeunload', () => {
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+  clearPlannedRoute();
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+});
+</script>
+</body>
+</html>

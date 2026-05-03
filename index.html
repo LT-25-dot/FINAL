@@ -17,13 +17,15 @@
             align-items: center;
             justify-content: flex-start;
             color: #333;
-            padding-top: 20px;
+            padding-top: 30px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
             padding: 0 20px;
+            width: 100%;
+            max-width: 1200px;
         }
 
         h1 {
@@ -38,7 +40,7 @@
             margin-top: 10px;
         }
 
-        /* 按鈕容器 - 使用 grid 自動適配 */
+        /* 按鈕容器 - 完全對稱置中 */
         .buttons {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -46,11 +48,11 @@
             justify-content: center;
             max-width: 1200px;
             width: 100%;
-            padding: 0 20px;
+            padding: 0 20px;           /* 左右對稱間距 */
             margin: 0 auto;
         }
 
-        /* 共用按鈕樣式 + 背景圖片 + 半透明遮罩 */
+        /* 共用按鈕樣式 */
         .btn {
             display: block;
             width: 100%;
@@ -70,7 +72,7 @@
             min-height: 220px;
         }
 
-        /* 半透明深色遮罩 */
+        /* 半透明遮罩 */
         .btn::after {
             content: '';
             position: absolute;
@@ -92,7 +94,6 @@
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
         }
 
-        /* 文字內容放在上方 */
         .btn > * {
             position: relative;
             z-index: 2;
@@ -105,13 +106,13 @@
             opacity: 0.95;
         }
 
-        /* 四個按鈕的背景圖片 */
+        /* 背景圖片 */
         .btn-mtr   { background-image: url('MTR.jpg'); }
         .btn-lr    { background-image: url('LR.jpg'); }
         .btn-bus   { background-image: url('BUS.jpg'); }
         .btn-games { background-image: url('GAME.jpg'); }
 
-        /* 小遊戲按鈕額外霓虹效果 */
+        /* 小遊戲按鈕特效 */
         .btn-games {
             box-shadow: 0 8px 20px rgba(0, 255, 200, 0.3);
         }
@@ -122,9 +123,9 @@
         /* 手機完美適配 */
         @media (max-width: 768px) {
             .buttons {
-                grid-template-columns: 1fr;   /* 手機上單列顯示 */
+                grid-template-columns: 1fr;
                 gap: 25px;
-                padding: 0 15px;
+                padding: 0 20px;
             }
             .btn {
                 min-height: 190px;

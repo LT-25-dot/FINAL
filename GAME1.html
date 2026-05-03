@@ -19,9 +19,9 @@
             font-family: 'Press Start 2P', system-ui;
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            overflow: hidden;
+            overflow-y: auto;           /* 允許滾動，避免內容被切掉 */
             position: relative;
         }
         
@@ -44,52 +44,46 @@
             backdrop-filter: blur(20px);
             border-radius: 24px;
             border: 3px solid rgba(0, 255, 200, 0.3);
-            padding: 25px 20px 20px;
+            padding: 20px 15px 25px;
             box-shadow: 0 0 60px rgba(0, 255, 200, 0.3),
                         inset 0 0 30px rgba(255,255,255,0.1);
-            max-width: 440px;
+            max-width: 100%;
             width: 95%;
+            margin: 10px 0;
         }
 
-        /* ==================== 新增：最頂部大標題 ==================== */
         .top-title {
             text-align: center;
-            margin-bottom: 18px;
+            margin-bottom: 15px;
         }
         
         .top-title h1 {
-            font-size: 2.1rem;
-            text-shadow: 0 0 20px #00ffcc,
-                         0 0 40px #00ffcc;
+            font-size: 1.9rem;
+            text-shadow: 0 0 20px #00ffcc;
             letter-spacing: 4px;
             color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
         }
 
-        /* ==================== 第二層：選單 + 分數 ==================== */
         header {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             padding: 0 8px;
         }
         
         .scores {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             margin-left: auto;
         }
         
         .score-box {
             background: rgba(0,0,0,0.4);
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 12px;
             border: 2px solid #00ffcc;
             text-align: center;
-            min-width: 80px;
+            min-width: 75px;
         }
         
         .label {
@@ -98,21 +92,23 @@
         }
         
         .value {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             color: #00ffcc;
         }
         
         canvas {
             display: block;
-            margin: 0 auto;
+            margin: 0 auto 18px;
             border-radius: 16px;
             border: 6px solid #112233;
             box-shadow: 0 0 40px rgba(0, 255, 200, 0.4);
             image-rendering: pixelated;
+            width: 100%;
+            max-width: 100%;
         }
         
         .controls {
-            margin-top: 20px;
+            margin-top: 15px;
             display: flex;
             justify-content: center;
             gap: 10px;
@@ -130,7 +126,7 @@
             transition: all 0.1s;
             white-space: nowrap;
             flex: 1;
-            min-width: 110px;
+            min-width: 100px;
         }
         
         button:active {
@@ -141,15 +137,12 @@
         .main-btn {
             background: linear-gradient(#ff00aa, #cc0088);
             color: white;
-            box-shadow: 0 8px 0 #880055;
         }
         
         .music-btn {
             background: linear-gradient(#00ccff, #0099cc) !important;
             color: #001122;
             box-shadow: 0 8px 0 #007799 !important;
-            min-width: 100px;
-            padding: 14px 16px;
         }
         
         .game-over {
@@ -170,19 +163,21 @@
         
         .dpad {
             display: grid;
-            grid-template-columns: 60px 60px 60px;
-            gap: 8px;
-            margin-top: 15px;
+            grid-template-columns: 72px 72px 72px;
+            gap: 10px;
+            margin: 20px auto 10px;
+            max-width: 240px;
         }
         
         .dpad button {
-            width: 60px;
-            height: 60px;
-            font-size: 28px;
+            width: 72px;
+            height: 72px;
+            font-size: 32px;
             padding: 0;
             background: linear-gradient(#00ffcc, #00ccaa);
             color: #001122;
             box-shadow: 0 8px 0 #008877;
+            border-radius: 12px;
         }
         
         .dpad button:active {
@@ -190,7 +185,7 @@
             box-shadow: 0 4px 0 #008877;
         }
 
-        /* ==================== 漢堡包按鈕 + 側邊選單 ==================== */
+        /* 漢堡包與側邊選單樣式保持不變 */
         .hamburger {
             background: none;
             border: none;
@@ -215,15 +210,9 @@
             box-shadow: 0 0 8px #00ffcc;
         }
 
-        .hamburger.active span:nth-child(1) {
-            transform: rotate(45deg) translate(6px, 6px);
-        }
-        .hamburger.active span:nth-child(2) {
-            opacity: 0;
-        }
-        .hamburger.active span:nth-child(3) {
-            transform: rotate(-45deg) translate(5px, -5px);
-        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
         .sidebar {
             position: fixed;
@@ -240,9 +229,7 @@
             padding-top: 90px;
         }
 
-        .sidebar.open {
-            left: 0;
-        }
+        .sidebar.open { left: 0; }
 
         .sidebar ul {
             list-style: none;
@@ -251,12 +238,6 @@
         .sidebar li {
             padding: 20px 28px;
             border-bottom: 1px solid rgba(0, 255, 200, 0.15);
-            transition: all 0.25s;
-        }
-
-        .sidebar li:hover {
-            background: rgba(0, 255, 200, 0.12);
-            padding-left: 40px;
         }
 
         .sidebar a {
@@ -266,20 +247,12 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            letter-spacing: 1px;
-        }
-
-        .sidebar a:hover {
-            color: #00ffcc;
-            text-shadow: 0 0 12px #00ffcc;
         }
 
         .overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.65);
             opacity: 0;
             visibility: hidden;
@@ -297,12 +270,11 @@
     <!-- 側邊選單 -->
     <div id="sidebar" class="sidebar">
         <ul>
-            <ul>
-                <li><a href="index.html">🏠 首頁</a></li>
-                <li><a href="MTR.html">🚇 港鐵到站查詢</a></li>
-                <li><a href="LR.html">🚋 輕鐵到站查詢</a></li>
-                <li><a href="BUS.html">🚌 巴士到站查詢</a></li>
-                <li><a href="ALLGAMES.html">🐍 小遊戲</a></li>
+            <li><a href="index.html">🏠 首頁</a></li>
+            <li><a href="MTR.html">🚇 港鐵到站查詢</a></li>
+            <li><a href="LR.html">🚋 輕鐵到站查詢</a></li>
+            <li><a href="BUS.html">🚌 巴士到站查詢</a></li>
+            <li><a href="ALLGAMES.html" class="active">🐍 小遊戲</a></li>
         </ul>
     </div>
 
@@ -310,7 +282,6 @@
     <div id="overlay" class="overlay"></div>
 
     <div class="container">
-        
         <!-- 最頂部大標題 -->
         <div class="top-title">
             <h1>🐍 超級貪食蛇</h1>
@@ -318,7 +289,6 @@
 
         <!-- 第二層：選單按鈕 + 分數 -->
         <header>
-            <!-- 漢堡包按鈕（左上角） -->
             <button id="hamburger" class="hamburger">
                 <span></span>
                 <span></span>
@@ -337,7 +307,7 @@
             </div>
         </header>
         
-        <canvas id="canvas" width="400" height="400"></canvas>
+        <canvas id="canvas"></canvas>
         
         <!-- 控制按鈕區域 -->
         <div class="controls">
@@ -361,16 +331,13 @@
         
         <p style="text-align:center; margin-top:15px; opacity:0.75; font-size:0.75rem; line-height:1.4;">
             滑動螢幕或按方向鍵<br>
-            吃🍎讓蛇變長！<br>
+            吃🍎讓蛇變長！
         </p>
         
-        <!-- 背景音樂 -->
         <audio id="bgm" loop preload="auto">
             <source src="MUSIC1.mp3" type="audio/mpeg">
-            您的瀏覽器不支援音訊播放。
         </audio>
         
-        <!-- 遊戲結束畫面 -->
         <div id="gameOver" class="game-over">
             <h2 style="color:#ff0066; margin-bottom:10px; font-size:1.5rem;">GAME OVER</h2>
             <p style="margin-bottom:15px;">你的分數：<span id="finalScore" style="color:#00ffcc; font-size:1.6rem;"></span></p>
@@ -381,8 +348,10 @@
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const gridSize = 20;
-        const tileCount = 20;
+        
+        const tileCount = 20;        // 遊戲格子數量保持不變
+        let gridSize = 20;           // 每個格子實際像素大小（會自動調整）
+        let canvasSize = 400;        // 預設值
         
         let snake = [
             {x: 10, y: 10},
@@ -399,13 +368,23 @@
         let isPaused = false;
         let gameOverFlag = false;
         
-        // 音樂相關
         const bgm = document.getElementById('bgm');
         let musicEnabled = true;
-        
-        // 初始化最高分
+
         document.getElementById('highscore').textContent = String(highScore).padStart(3, '0');
-        
+
+        // ==================== 響應式畫布調整 ====================
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth * 0.92, 420); // 手機安全寬度
+            canvasSize = Math.floor(maxWidth / tileCount) * tileCount; // 保持整數倍數
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+            gridSize = canvasSize / tileCount;
+            
+            // 重新繪製目前畫面
+            if (typeof draw === 'function') draw();
+        }
+
         function randomFood() {
             let newFood;
             do {
@@ -441,21 +420,20 @@
                     ctx.fillStyle = '#00ffcc';
                     ctx.fillRect(segment.x * gridSize + 1, segment.y * gridSize + 1, gridSize - 2, gridSize - 2);
                     
-                    // 眼睛
                     ctx.fillStyle = '#001122';
-                    const eye = 4;
+                    const eye = gridSize * 0.2;
                     if (dx === 1) {
-                        ctx.fillRect(segment.x * gridSize + 13, segment.y * gridSize + 6, eye, eye);
-                        ctx.fillRect(segment.x * gridSize + 13, segment.y * gridSize + 13, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.65, segment.y * gridSize + gridSize*0.3, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.65, segment.y * gridSize + gridSize*0.65, eye, eye);
                     } else if (dx === -1) {
-                        ctx.fillRect(segment.x * gridSize + 4, segment.y * gridSize + 6, eye, eye);
-                        ctx.fillRect(segment.x * gridSize + 4, segment.y * gridSize + 13, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.15, segment.y * gridSize + gridSize*0.3, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.15, segment.y * gridSize + gridSize*0.65, eye, eye);
                     } else if (dy === -1) {
-                        ctx.fillRect(segment.x * gridSize + 6, segment.y * gridSize + 4, eye, eye);
-                        ctx.fillRect(segment.x * gridSize + 13, segment.y * gridSize + 4, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.3, segment.y * gridSize + gridSize*0.15, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.65, segment.y * gridSize + gridSize*0.15, eye, eye);
                     } else {
-                        ctx.fillRect(segment.x * gridSize + 6, segment.y * gridSize + 13, eye, eye);
-                        ctx.fillRect(segment.x * gridSize + 13, segment.y * gridSize + 13, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.3, segment.y * gridSize + gridSize*0.65, eye, eye);
+                        ctx.fillRect(segment.x * gridSize + gridSize*0.65, segment.y * gridSize + gridSize*0.65, eye, eye);
                     }
                 } else {
                     const alpha = Math.max(0.7, 1 - index * 0.04);
@@ -465,10 +443,10 @@
             });
             
             // 畫食物
-            ctx.font = '20px Arial';
+            ctx.font = `${gridSize * 0.9}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🍎', food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2 + 1);
+            ctx.fillText('🍎', food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2);
         }
         
         function update() {
@@ -520,7 +498,6 @@
         function toggleMusic() {
             musicEnabled = !musicEnabled;
             const btn = document.getElementById('musicBtn');
-            
             if (musicEnabled) {
                 btn.innerHTML = '♪ 音樂';
                 if (!isPaused && !gameOverFlag) bgm.play().catch(() => {});
@@ -548,9 +525,7 @@
             
             gameInterval = setInterval(gameLoop, gameSpeed);
             
-            if (musicEnabled) {
-                bgm.play().catch(() => {});
-            }
+            if (musicEnabled) bgm.play().catch(() => {});
         }
         
         function endGame() {
@@ -577,8 +552,8 @@
             document.getElementById('gameOver').style.display = 'none';
             startGame();
         }
-        
-        // 鍵盤控制
+
+        // ==================== 鍵盤 + 觸控控制 ====================
         document.addEventListener('keydown', e => {
             switch (e.key) {
                 case 'ArrowUp': case 'w': case 'W': changeDirection(0, -1); break;
@@ -587,8 +562,7 @@
                 case 'ArrowRight': case 'd': case 'D': changeDirection(1, 0); break;
             }
         });
-        
-        // 手機滑動控制
+
         let touchStartX = 0, touchStartY = 0;
         canvas.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
@@ -597,7 +571,6 @@
         
         canvas.addEventListener('touchend', e => {
             if (gameOverFlag || isPaused) return;
-            
             const touchEndX = e.changedTouches[0].screenX;
             const touchEndY = e.changedTouches[0].screenY;
             const deltaX = touchEndX - touchStartX;
@@ -612,7 +585,7 @@
             }
         });
 
-        // 漢堡包 + 側邊選單 JS
+        // ==================== 側邊選單 ====================
         const hamburger = document.getElementById('hamburger');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
@@ -620,7 +593,6 @@
         function toggleSidebar() {
             const isOpen = sidebar.classList.toggle('open');
             overlay.classList.toggle('show');
-
             const spans = hamburger.querySelectorAll('span');
             if (isOpen) {
                 spans[0].style.transform = 'rotate(45deg) translate(6px, 6px)';
@@ -636,16 +608,10 @@
         hamburger.addEventListener('click', toggleSidebar);
         overlay.addEventListener('click', toggleSidebar);
 
-        document.querySelectorAll('.sidebar a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (!link.classList.contains('active')) {
-                    console.log('前往：' + link.textContent);
-                }
-                toggleSidebar();
-            });
-        });
-
+        // 啟動遊戲
         window.onload = () => {
+            resizeCanvas();                    // 第一次根據手機大小調整畫布
+            window.addEventListener('resize', resizeCanvas); // 旋轉螢幕也會自動調整
             food = randomFood();
             draw();
             document.getElementById('musicBtn').innerHTML = '♪ 音樂';

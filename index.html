@@ -36,19 +36,23 @@
             margin-top: 10px;
         }
 
-        /* 按鈕容器 */
+        /* 按鈕容器 - 修正重疊問題 */
         .buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 30px;
+            gap: 40px;                    /* 加大間距，避免重疊 */
             justify-content: center;
+            max-width: 1300px;            /* 限制最大寬度 */
+            width: 100%;
+            padding: 0 20px;
+            margin: 0 auto;
         }
 
-        /* 共用按鈕樣式 */
+        /* 共用按鈕樣式 + 背景圖片 + 半透明遮罩 */
         .btn {
             display: block;
             width: 280px;
-            padding: 30px 20px;
+            padding: 40px 20px;
             text-align: center;
             text-decoration: none;
             color: white;
@@ -59,6 +63,27 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            min-height: 220px;
+            flex-shrink: 0;               /* 防止按鈕被壓縮 */
+        }
+
+        /* 半透明深色遮罩 */
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover::after {
+            background: rgba(0, 0, 0, 0.45);
         }
 
         .btn:hover {
@@ -70,38 +95,41 @@
             transform: translateY(0);
         }
 
-        /* 各公司專屬顏色（參考官方主色） */
-        /* MTR（港鐵重鐵） - 經典紅 #C8102E */
-        .btn-mtr {
-            background: linear-gradient(135deg, #C8102E, #a10d24);
+        /* 文字內容放在上方 */
+        .btn > * {
+            position: relative;
+            z-index: 2;
         }
 
-        /* Light Rail（輕鐵） - 官方藍 #009CDE */
-        .btn-lr {
-            background: linear-gradient(135deg, #009CDE, #007bb8);
-        }
-
-        /* Bus（巴士，以九巴為主參考紅色，但為避免與MTR重複，改用城巴/新巴常見的深藍綠 #003C71，兼顧多間巴士公司） */
-        .btn-bus {
-            background: linear-gradient(135deg, #003C71, #002b55);
-        }
-
-        /* 小標題 */
         .btn span {
             display: block;
-            font-size: 1rem;
-            margin-top: 8px;
-            opacity: 0.9;
+            font-size: 1.1rem;
+            margin-top: 12px;
+            opacity: 0.95;
+        }
+
+        /* 四個按鈕的背景圖片 */
+        .btn-mtr   { background-image: url('MTR.jpg'); }
+        .btn-lr    { background-image: url('LR.jpg'); }
+        .btn-bus   { background-image: url('BUS.jpg'); }
+        .btn-games { background-image: url('GAME.jpg'); }
+
+        /* 小遊戲按鈕額外霓虹效果 */
+        .btn-games {
+            box-shadow: 0 8px 20px rgba(0, 255, 200, 0.3);
+        }
+        .btn-games:hover {
+            box-shadow: 0 12px 30px rgba(0, 255, 200, 0.5);
         }
 
         /* 手機適配 */
         @media (max-width: 768px) {
             .buttons {
-                flex-direction: column;
-                align-items: center;
+                gap: 30px;
             }
             .btn {
-                width: 80%;
+                width: 85%;
+                min-height: 200px;
             }
             h1 {
                 font-size: 2.2rem;
@@ -112,7 +140,7 @@
 <body>
     <header>
         <h1>香港公共交通到站查詢</h1>
-        <p>選擇以下交通工具，查詢實時到站時間</p>
+        <p>選擇以下交通工具或小遊戲</p>
     </header>
 
     <div class="buttons">
@@ -129,6 +157,11 @@
         <a href="Bus.html" class="btn btn-bus">
             巴士 (Bus)
             <span>巴士到站時間查詢</span>
+        </a>
+
+        <a href="ALLGAMES.html" class="btn btn-games">
+            🕹️ 小遊戲
+            <span>超級貪食蛇 • 像素恐龍 • 霓虹2048</span>
         </a>
     </div>
 </body>

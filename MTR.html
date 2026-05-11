@@ -1272,8 +1272,7 @@ function updateUserLocation(position) {
     };
     animateLine();
 
-    const bounds = L.latLngBounds([[lat, lng], [nearest.lat, nearest.lng]]);
-    map.fitBounds(bounds, { padding: [80, 80], maxZoom: 16, animate: true });
+    // 【重要】這裡已經移除 fitBounds！地圖不會再自動放大
   }
 };
 

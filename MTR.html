@@ -1142,6 +1142,7 @@ let map = null;
 let latestUserLat = null;
 let latestUserLng = null;
 let latestNearestStation = null;
+let hasDoneInitialLocationZoom = false;
 
 const STATION_LINES = {};
 Object.keys(LINES).forEach(code => {
@@ -1274,7 +1275,7 @@ function updateUserLocation(position) {
     const bounds = L.latLngBounds([[lat, lng], [nearest.lat, nearest.lng]]);
     map.fitBounds(bounds, { padding: [80, 80], maxZoom: 16, animate: true });
   }
-}
+};
 
 window.requestUserLocation = function() {
   const btn = document.getElementById('gps-btn');

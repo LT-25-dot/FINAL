@@ -50,23 +50,32 @@
       box-shadow: 10px 10px 20px -5px rgb(234 179 8 / 0.15);
     }
 
-    /* ==================== 手機版全面優化 ==================== */
+    /* ==================== 手機版全面優化（重點修復搜尋框溢出） ==================== */
     @media (max-width: 640px) {
       .max-w-7xl { max-width: 100% !important; padding-left: 16px !important; padding-right: 16px !important; }
       #map { height: 460px !important; }
       
-      .search-container { padding: 12px !important; }
-      .search-container .flex { gap: 8px; }
+      /* 修復搜尋框溢出 */
+      .search-container {
+        padding: 12px !important;
+      }
+      .search-container .flex {
+        gap: 8px;
+        width: 100%;
+      }
       #routeInput {
+        flex: 1;
+        min-width: 0;           /* 關鍵：防止 input 過長導致溢出 */
         padding: 14px 16px !important;
         font-size: 1.05rem !important;
         border-radius: 9999px !important;
       }
       .search-btn {
-        padding: 14px 24px !important;
+        padding: 14px 20px !important;   /* 縮小按鈕寬度 */
         font-size: 1.05rem !important;
         border-radius: 9999px !important;
         white-space: nowrap;
+        flex-shrink: 0;                  /* 防止按鈕被壓縮 */
       }
       .p-6 { padding: 16px !important; }
       .mb-8, .mb-6 { margin-bottom: 20px !important; }
@@ -102,13 +111,13 @@
       <div id="favoritesList" class="grid grid-cols-1 gap-4"></div>
     </div>
 
-    <!-- 智慧搜尋 -->
+    <!-- 智慧搜尋（已修復手機溢出） -->
     <div class="bg-white rounded-3xl shadow p-4 sm:p-6 mb-8 relative search-container">
-      <div class="flex gap-3">
+      <div class="flex gap-3 w-full">
         <input id="routeInput" type="text" placeholder="輸入路線（如 235M、2、74B）" 
-               class="flex-1 px-5 py-4 border border-gray-300 rounded-3xl focus:outline-none focus:border-red-500 text-lg font-medium"
+               class="flex-1 min-w-0 px-5 py-4 border border-gray-300 rounded-3xl focus:outline-none focus:border-red-500 text-lg font-medium"
                oninput="handleInput()">
-        <button onclick="searchSelectedRoute()" class="search-btn bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-3xl font-semibold transition">
+        <button onclick="searchSelectedRoute()" class="search-btn bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-3xl font-semibold transition flex-shrink-0">
           搜尋
         </button>
       </div>
@@ -584,7 +593,7 @@
       loadSavedFavorites();
       renderFavorites();
       startFavoritesAutoRefresh();
-      console.log('✅ 手機版已完全優化！空白問題已解決，最愛站功能正常');
+      console.log('✅ 手機搜尋框已完全修復！不再溢出');
     };
   </script>
 </body>
